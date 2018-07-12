@@ -6,43 +6,25 @@
 //TODO: add in support for user personalisations to forms/views
 var fs = (() => {
   var fieldChart = () => {
-    if (!getTargetFrame().fields)
-      var fields = [];
-    else
-      getTargetFrame().fields = [];
-    var gf = getTargetFrame().g_form;
-    gf.elements.forEach(elem => {
-      var details = {};
-      details.fieldLabel = gf.getLabelOf(elem.fieldName);
-      details.fieldName = elem.fieldName;
-      details.value = gf.getValue(elem.fieldName);
-      details.type = elem.type;
-      details.reference = elem.reference;
-      fields.push(details);
-    });
-    console.table(fields);
-  }
-
-  var spfieldChart = () => {
-    var gf = null;
-    try {
-      gf = angular.element("sp-variable-layout").scope().getGlideForm();
-    } catch (err) {
-      console.error('Unable to find the g_form object: ' + err.message);
-      return;
+    if (isServicePortalPage()) {
+      spfieldChart();
+    } else {
+      if (!getTargetFrame().fields)
+        var fields = [];
+      else
+        getTargetFrame().fields = [];
+      var gf = getTargetFrame().g_form;
+      gf.elements.forEach(elem => {
+        var details = {};
+        details.fieldLabel = gf.getLabelOf(elem.fieldName);
+        details.fieldName = elem.fieldName;
+        details.value = gf.getValue(elem.fieldName);
+        details.type = elem.type;
+        details.reference = elem.reference;
+        fields.push(details);
+      });
+      console.table(fields);
     }
-    var fieldDetails = []
-    var fields = gf.getFieldNames();
-    fields.forEach(fieldName => {
-      var details = {};
-      details.fieldLabel = gf.getLabelOf(fieldName);
-      details.fieldName = fieldName;
-      details.value = gf.getValue(fieldName);
-      details.type = gf.getField(fieldName).type;
-      details.reference = gf.getField(fieldName).refTable;
-      fieldDetails.push(details);
-    });
-    console.table(fieldDetails);
   }
 
   var parseURL = () => {
@@ -50,27 +32,25 @@ var fs = (() => {
   }
 
   var getSections = () => {
-    var tableName = getTargetFrame().g_form.getTableName();
-    var viewName = getParmValue('sysparm_view');
-    var urlString = `https://${getTargetFrame().location.hostname}/sys_ui_section_list.do?sysparm_query=name=${tableName}^view.name=${viewName}`;
-    window.open(urlString, '_blank');
-    console.log(urlString);
-  }
-
-  var spGetSections = () => {
-    var tableName = getParmValue('table');
-    var viewName = getParmValue('view');
-    if (viewName == 'default')
-      viewName = '';
-    var urlString = `https://${getTargetFrame().location.hostname}/sys_ui_section_list.do?sysparm_query=name=${tableName}^view.name=${viewName}`;
-    window.open(urlString, '_blank');
-    console.log(urlString);
+    if (isServicePortalPage()) {
+      spGetSections();
+    } else {
+      var tableName = getTargetFrame().g_form.getTableName();
+      var viewName = getParmValue('sysparm_view');
+      var urlString = `https://${getTargetFrame().location.hostname}/sys_ui_section_list.do?sysparm_query=name=${tableName}^view.name=${viewName}`;
+      window.open(urlString, '_blank');
+      console.table({"Form Sections": urlString});
+    }
   }
 
   var searchScripts = (searchTerm) => {
-    searchClientScripts(searchTerm);
-    searchBusinessRules(searchTerm);
-    searchUiPolicies(searchTerm);
+    if (isServicePortalPage()) {
+      searchServicePortalScripts(searchTerm);
+    } else {
+      searchClientScripts(searchTerm);
+      searchBusinessRules(searchTerm);
+      searchUiPolicies(searchTerm);
+    }
   }
 
   var searchClientScripts = (fieldName) => {
@@ -150,6 +130,42 @@ var fs = (() => {
       console.table({"UI Policies": urlString});
   }
 
+  function spfieldChart() {
+    var gf = null;
+    try {
+      gf = angular.element("sp-variable-layout").scope().getGlideForm();
+    } catch (err) {
+      console.error('Unable to find the g_form object: ' + err.message);
+      return;
+    }
+    var fieldDetails = []
+    var fields = gf.getFieldNames();
+    fields.forEach(fieldName => {
+      var details = {};
+      details.fieldLabel = gf.getLabelOf(fieldName);
+      details.fieldName = fieldName;
+      details.value = gf.getValue(fieldName);
+      details.type = gf.getField(fieldName).type;
+      details.reference = gf.getField(fieldName).refTable;
+      fieldDetails.push(details);
+    });
+    console.table(fieldDetails);
+  }
+
+  function spGetSections() {
+    var tableName = getParmValue('table');
+    var viewName = getParmValue('view');
+    if (viewName == 'default')
+      viewName = '';
+    var urlString = `https://${getTargetFrame().location.hostname}/sys_ui_section_list.do?sysparm_query=name=${tableName}^view.name=${viewName}`;
+    window.open(urlString, '_blank');
+    console.table({"Form Sections": urlString});
+  }
+
+  function searchServicePortalScripts(searchTerm) {
+    console.log(searchTerm);
+  }
+
   function getParmValue(parmName) {
     var searchParams = new URLSearchParams(getTargetFrame().location.search);
     var value = searchParams.get(parmName);
@@ -180,10 +196,12 @@ var fs = (() => {
     }
   }
 
+  function isServicePortalPage(callback) {
+    return window.NOW.hasOwnProperty("sp");
+  }
+
   return {
       fieldChart: fieldChart, 
-      spfieldChart: spfieldChart,
-      spGetSections: spGetSections,
       parseURL: parseURL,
       getSections: getSections,
       searchScripts: searchScripts
