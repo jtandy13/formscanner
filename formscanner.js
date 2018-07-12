@@ -1,11 +1,10 @@
 //TODO: add in support for domain separation
 //DONE: add functions to return URLs to the current form sections, elements, view.
 //TODO: add in URLs for all loaded client scripts and ui policies and actions
-//TODO: allow for a single parameter for fieldChart()
-//TODO: include search functions for client scripts, ui policies, ui actions, business rules
+//TODO: include search functions for Service Portal form scripts
 //TODO: add toggleNav function
 //TODO: add in support for user personalisations to forms/views
-var formscanner = (() => {
+var fs = (() => {
   var fieldChart = () => {
     if (!getTargetFrame().fields)
       var fields = [];
@@ -103,7 +102,7 @@ var formscanner = (() => {
         });
         var urlString = `https://${tFrame.location.hostname}/sys_script_client_list.do?sysparm_query=sys_idIN${sysIdString}`;
         window.open(urlString, '_blank');
-        console.log(urlString);
+        console.table({"Client Scripts": urlString});
       });
   }
 
@@ -131,7 +130,7 @@ var formscanner = (() => {
       });
       var urlString = `https://${tFrame.location.hostname}/sys_script_list.do?sysparm_query=sys_idIN${sysIdString}`;
       window.open(urlString, '_blank');
-      console.log(urlString);
+      console.table({"Business Rules": urlString});
      })
   }
 
@@ -147,8 +146,8 @@ var formscanner = (() => {
       });
     });
     var urlString = `https://${tFrame.location.hostname}/sys_ui_policy_list.do?sysparm_query=sys_idIN${policySysIds}`;
-    window.open(urlString, '_blank');
-    console.log(urlString);
+      window.open(urlString, '_blank');
+      console.table({"UI Policies": urlString});
   }
 
   function getParmValue(parmName) {
@@ -187,9 +186,6 @@ var formscanner = (() => {
       spGetSections: spGetSections,
       parseURL: parseURL,
       getSections: getSections,
-      searchClientScripts: searchClientScripts,
-      searchBusinessRules: searchBusinessRules,
-      searchUiPolicies: searchUiPolicies,
       searchScripts: searchScripts
     };
 })();
