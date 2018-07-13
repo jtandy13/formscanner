@@ -177,7 +177,7 @@ var fs = (() => {
       if (thisScope.hasOwnProperty('data') && thisScope.data.hasOwnProperty('f'))
         formScope = thisScope.data.f;
     });
-    var clientScripts = formScope.clientScripts;
+    var clientScripts = formScope.client_script; 
     var policies = formScope.policy;
     spSearchUiPolicies(policies, fieldName);
     spSearchClientScripts(clientScripts, fieldName);
@@ -197,25 +197,25 @@ var fs = (() => {
 
   function spSearchClientScripts(clientScripts, fieldName) {
     var clientScriptSysIds = '';
-    if(classScripts.hasOwnProperty('onChange')) {
-      if(classScripts.onChange.length > 0) {
-        classScripts.onChange.forEach(clientScript => {
+    if(clientScripts.hasOwnProperty('onChange')) {
+      if(clientScripts.onChange.length > 0) {
+        clientScripts.onChange.forEach(clientScript => {
           if(clientScript.script.search(fieldName) != -1)
             clientScriptSysIds += clientScript.sys_id + ',';
         }); 
       }
     } 
-    if(classScripts.hasOwnProperty('onLoad')) {
-      if(classScripts.onLoad.length > 0) {
-        classScripts.onLoad.forEach(clientScript => {
+    if(clientScripts.hasOwnProperty('onLoad')) {
+      if(clientScripts.onLoad.length > 0) {
+        clientScripts.onLoad.forEach(clientScript => {
           if(clientScript.script.search(fieldName) != -1)
             clientScriptSysIds += clientScript.sys_id + ',';
         }); 
       }
     }
-    if(classScripts.hasOwnProperty('onSubmit')) {
-      if(classScripts.onSubmit.length > 0) {
-        classScripts.onSubmit.forEach(clientScript => {
+    if(clientScripts.hasOwnProperty('onSubmit')) {
+      if(clientScripts.onSubmit.length > 0) {
+        clientScripts.onSubmit.forEach(clientScript => {
           if(clientScript.script.search(fieldName) != -1)
             clientScriptSysIds += clientScript.sys_id + ',';
         }); 
