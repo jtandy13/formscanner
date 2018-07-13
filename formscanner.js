@@ -1,6 +1,6 @@
 //TODO: add in support for domain separation
 //DONE: add functions to return URLs to the current form sections, elements, view.
-//TODO: add in URLs for all loaded client scripts and ui policies and actions
+//DONE: add in URLs for all loaded client scripts and ui policies and actions
 //TODO: include search functions for Service Portal form scripts
 //TODO: add toggleNav function
 //TODO: add in support for user personalisations to forms/views
@@ -37,7 +37,7 @@ var fs = (() => {
     } else {
       var tableName = getTargetFrame().g_form.getTableName();
       var viewName = getParmValue('sysparm_view');
-      var urlString = `https://${getTargetFrame().location.hostname}/sys_ui_section_list.do?sysparm_query=name=${tableName}^view.name=${viewName}`;
+      var urlString = `https://${getHostName()}/sys_ui_section_list.do?sysparm_query=name=${tableName}^view.name=${viewName}`;
       window.open(urlString, '_blank');
       console.table({"Form Sections": urlString});
     }
@@ -80,7 +80,7 @@ var fs = (() => {
           else
           sysIdString += sys_id;
         });
-        var urlString = `https://${tFrame.location.hostname}/sys_script_client_list.do?sysparm_query=sys_idIN${sysIdString}`;
+        var urlString = `https://${getHostName()}/sys_script_client_list.do?sysparm_query=sys_idIN${sysIdString}`;
         window.open(urlString, '_blank');
         console.table({"Client Scripts": urlString});
       });
@@ -108,7 +108,7 @@ var fs = (() => {
         else
         sysIdString += sys_id;
       });
-      var urlString = `https://${tFrame.location.hostname}/sys_script_list.do?sysparm_query=sys_idIN${sysIdString}`;
+      var urlString = `https://${getHostName()}/sys_script_list.do?sysparm_query=sys_idIN${sysIdString}`;
       window.open(urlString, '_blank');
       console.table({"Business Rules": urlString});
      })
@@ -116,18 +116,23 @@ var fs = (() => {
 
   var searchUiPolicies = (fieldName) => {
     var tFrame = getTargetFrame();
-    var uiPolicyArray = tFrame.g_ui_policy;
+    var policyArray = tFrame.g_ui_policy;
+    var policySysIds = getPolicySysIds(policyArray, fieldName);
+    var urlString = `https://${getHostName()}/sys_ui_policy_list.do?sysparm_query=sys_idIN${policySysIds}`;
+      window.open(urlString, '_blank');
+      console.table({"UI Policies": urlString});
+  }
+
+  function getPolicySysIds(policyArray, fieldName) {
     var policySysIds = '';
-    uiPolicyArray.forEach((policy) => {
+    policyArray.forEach((policy) => {
       policy.actions.forEach((action) => {
         if (action.name == fieldName) {
           policySysIds += policy.sys_id + ',';
         }
       });
     });
-    var urlString = `https://${tFrame.location.hostname}/sys_ui_policy_list.do?sysparm_query=sys_idIN${policySysIds}`;
-      window.open(urlString, '_blank');
-      console.table({"UI Policies": urlString});
+    return policySysIds;
   }
 
   function spfieldChart() {
@@ -157,13 +162,68 @@ var fs = (() => {
     var viewName = getParmValue('view');
     if (viewName == 'default')
       viewName = '';
-    var urlString = `https://${getTargetFrame().location.hostname}/sys_ui_section_list.do?sysparm_query=name=${tableName}^view.name=${viewName}`;
+    var urlString = `https://${getHostName()}/sys_ui_section_list.do?sysparm_query=name=${tableName}^view.name=${viewName}`;
     window.open(urlString, '_blank');
     console.table({"Form Sections": urlString});
   }
 
-  function searchServicePortalScripts(searchTerm) {
-    console.log(searchTerm);
+  function searchServicePortalScripts(fieldName) {
+    var widgetScopes = [];
+    var spWidgets = document.querySelectorAll("[widget='widget']");
+    var formWidgetScope = null;
+
+    spWidgets.forEach((widget, i) => {
+      var thisScope = angular.element(spWidgets[i]).scope();
+      if (thisScope.hasOwnProperty('data') && thisScope.data.hasOwnProperty('f'))
+        formScope = thisScope.data.f;
+    });
+    var clientScripts = formScope.clientScripts;
+    var policies = formScope.policy;
+    spSearchUiPolicies(policies, fieldName);
+    spSearchClientScripts(clientScripts, fieldName);
+    console.log(formScope);
+  }
+
+  function getHostName() {
+    return location.hostname;
+  }
+
+  function spSearchUiPolicies(policies, fieldName) {
+    var policySysIds = getPolicySysIds(policies, fieldName);
+    var urlString = `https://${getHostName()}/sys_ui_policy_list.do?sysparm_query=sys_idIN${policySysIds}`;
+    window.open(urlString, '_blank');
+    console.table({"UI Policies": urlString});
+  }
+
+  function spSearchClientScripts(clientScripts, fieldName) {
+    var clientScriptSysIds = '';
+    if(classScripts.hasOwnProperty('onChange')) {
+      if(classScripts.onChange.length > 0) {
+        classScripts.onChange.forEach(clientScript => {
+          if(clientScript.script.search(fieldName) != -1)
+            clientScriptSysIds += clientScript.sys_id + ',';
+        }); 
+      }
+    } 
+    if(classScripts.hasOwnProperty('onLoad')) {
+      if(classScripts.onLoad.length > 0) {
+        classScripts.onLoad.forEach(clientScript => {
+          if(clientScript.script.search(fieldName) != -1)
+            clientScriptSysIds += clientScript.sys_id + ',';
+        }); 
+      }
+    }
+    if(classScripts.hasOwnProperty('onSubmit')) {
+      if(classScripts.onSubmit.length > 0) {
+        classScripts.onSubmit.forEach(clientScript => {
+          if(clientScript.script.search(fieldName) != -1)
+            clientScriptSysIds += clientScript.sys_id + ',';
+        }); 
+      }
+    }
+    var urlString = `https://${getHostName()}/sys_script_client_list.do?sysparm_query=sys_idIN${clientScriptSysIds}`;
+    window.open(urlString, '_blank');
+    console.table({"Client Scripts": urlString});
   }
 
   function getParmValue(parmName) {
