@@ -1,9 +1,10 @@
 //TODO: add in support for domain separation
 //DONE: add functions to return URLs to the current form sections, elements, view.
 //DONE: add in URLs for all loaded client scripts and ui policies and actions
-//TODO: include search functions for Service Portal form scripts
+//DONE: include search functions for Service Portal form scripts
 //TODO: add toggleNav function
 //TODO: add in support for user personalisations to forms/views
+//TODO: filter out variables
 var fs = (() => {
   var fieldChart = () => {
     if (isServicePortalPage()) {
@@ -90,7 +91,8 @@ var fs = (() => {
     var tFrame = getTargetFrame();
     var businessRuleSysIds = [];
     var gr = new tFrame.GlideRecord("sys_script");
-    gr.addQuery("collection", tFrame.g_form.tableName);
+    var tableName = getTableName();
+    gr.addQuery("collection", tableName);
     new Promise((resolve, reject) => {
       gr.query(function (rec) {
         while (rec.next()) {
@@ -112,6 +114,14 @@ var fs = (() => {
       window.open(urlString, '_blank');
       console.table({"Business Rules": urlString});
      })
+  }
+
+  function getTableName() {
+    if (isServicePortalPage) {
+      return spGetTableName();
+    } else {
+      return getTargetFrame().g_form.tableName;
+    }
   }
 
   var searchUiPolicies = (fieldName) => {
@@ -157,6 +167,11 @@ var fs = (() => {
     console.table(fieldDetails);
   }
 
+  function spGetTableName() {
+    var gForm = angular.element("sp-variable-layout").scope().getGlideForm();
+    return gForm.getTableName();
+  }
+
   function spGetSections() {
     var tableName = getParmValue('table');
     var viewName = getParmValue('view');
@@ -181,6 +196,7 @@ var fs = (() => {
     var policies = formScope.policy;
     spSearchUiPolicies(policies, fieldName);
     spSearchClientScripts(clientScripts, fieldName);
+    searchBusinessRules(fieldName);
     console.log(formScope);
   }
 
