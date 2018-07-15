@@ -1,7 +1,5 @@
 //TODO: add in support for domain separation
-//DONE: add functions to return URLs to the current form sections, elements, view.
-//DONE: add in URLs for all loaded client scripts and ui policies and actions
-//DONE: include search functions for Service Portal form scripts
+//TODO: change script search outputs so that urls are not truncated.
 //TODO: add toggleNav function
 //TODO: add in support for user personalisations to forms/views
 //TODO: filter out variables
@@ -40,7 +38,9 @@ var fs = (() => {
       var viewName = getParmValue('sysparm_view');
       var urlString = `https://${getHostName()}/sys_ui_section_list.do?sysparm_query=name=${tableName}^view.name=${viewName}`;
       window.open(urlString, '_blank');
-      console.table({"Form Sections": urlString});
+      console.group('Form Sections');
+      console.log('Form Sections: ', urlString);
+      console.groupEnd();
     }
   }
 
@@ -83,7 +83,9 @@ var fs = (() => {
         });
         var urlString = `https://${getHostName()}/sys_script_client_list.do?sysparm_query=sys_idIN${sysIdString}`;
         window.open(urlString, '_blank');
-        console.table({"Client Scripts": urlString});
+        console.group('Client Scripts');
+        console.log('Client Scripts: ', urlString);
+        console.groupEnd();
       });
   }
 
@@ -112,12 +114,14 @@ var fs = (() => {
       });
       var urlString = `https://${getHostName()}/sys_script_list.do?sysparm_query=sys_idIN${sysIdString}`;
       window.open(urlString, '_blank');
-      console.table({"Business Rules": urlString});
-     })
+      console.group('Business Rules');
+      console.log('Business Rules: ', urlString);
+      console.groupEnd();
+     });
   }
 
   function getTableName() {
-    if (isServicePortalPage) {
+    if (isServicePortalPage()) {
       return spGetTableName();
     } else {
       return getTargetFrame().g_form.tableName;
@@ -130,7 +134,9 @@ var fs = (() => {
     var policySysIds = getPolicySysIds(policyArray, fieldName);
     var urlString = `https://${getHostName()}/sys_ui_policy_list.do?sysparm_query=sys_idIN${policySysIds}`;
       window.open(urlString, '_blank');
-      console.table({"UI Policies": urlString});
+      console.group('UI Policies');
+      console.log('UI Policies: ', urlString);
+      console.groupEnd();
   }
 
   function getPolicySysIds(policyArray, fieldName) {
@@ -208,7 +214,9 @@ var fs = (() => {
     var policySysIds = getPolicySysIds(policies, fieldName);
     var urlString = `https://${getHostName()}/sys_ui_policy_list.do?sysparm_query=sys_idIN${policySysIds}`;
     window.open(urlString, '_blank');
-    console.table({"UI Policies": urlString});
+    console.group('UI Policies');
+    console.log('UI Policies: ', urlString);
+    console.groupEnd();
   }
 
   function spSearchClientScripts(clientScripts, fieldName) {
@@ -239,7 +247,9 @@ var fs = (() => {
     }
     var urlString = `https://${getHostName()}/sys_script_client_list.do?sysparm_query=sys_idIN${clientScriptSysIds}`;
     window.open(urlString, '_blank');
-    console.table({"Client Scripts": urlString});
+    console.group('Client Scripts');
+    console.log('Client Scripts: ', urlString);
+    console.groupEnd();
   }
 
   function getParmValue(parmName) {
