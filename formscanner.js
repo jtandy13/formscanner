@@ -1,26 +1,22 @@
-//TODO: add in support for domain separation
-//TODO: change script search outputs so that urls are not truncated.
-//TODO: add toggleNav function
 //TODO: add in support for user personalisations to forms/views
-//TODO: filter out variables
+//TODO: add in error handling
 var fs = (() => {
   var fieldChart = () => {
     if (isServicePortalPage()) {
       spfieldChart();
     } else {
-      if (!getTargetFrame().fields)
-        var fields = [];
-      else
-        getTargetFrame().fields = [];
+      var fields = [];
       var gf = getTargetFrame().g_form;
       gf.elements.forEach(elem => {
-        var details = {};
-        details.fieldLabel = gf.getLabelOf(elem.fieldName);
-        details.fieldName = elem.fieldName;
-        details.value = gf.getValue(elem.fieldName);
-        details.type = elem.type;
-        details.reference = elem.reference;
-        fields.push(details);
+        if (elem.tableName != 'variable') {
+          var details = {};
+          details.fieldLabel = gf.getLabelOf(elem.fieldName);
+          details.fieldName = elem.fieldName;
+          details.value = gf.getValue(elem.fieldName);
+          details.type = elem.type;
+          details.reference = elem.reference;
+          fields.push(details);
+        }
       });
       console.table(fields);
     }
