@@ -1,4 +1,3 @@
-//TODO: add in support for user personalisations to forms/views
 var fs = (() => {
   var fieldChart = () => {
     if (isServicePortalPage()) {
