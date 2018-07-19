@@ -168,7 +168,6 @@ var fs = (() => {
     });
     return new Promise((resolve, reject) => {
       searchPolicyScripts(policyArray, fieldName, policySysIds, function (results) {
-        debugger;
         resolve(results);
       });
     });
@@ -184,7 +183,6 @@ var fs = (() => {
         promises.push(new Promise((resolve, reject) => {
           pgr.query(function (rec) {
             while (rec.next()) {
-              debugger;
               if (rec.script_true.search(fieldName) != -1 || rec.script_false.search(fieldName) != -1) {
                 if (policySysIds.indexOf(policy.sys_id) == -1) {
                   policySysIds.push(policy.sys_id);
