@@ -1,3 +1,5 @@
+//TODO: If the UI Policy's run_scripts field is true, we need to also check
+//the script_true and script_false fields.
 var fs = (() => {
   var fieldChart = () => {
     if (isServicePortalPage()) {
@@ -138,30 +140,66 @@ var fs = (() => {
   function searchUiPolicies(fieldName) {
     var tFrame = getTargetFrame();
     var policyArray = tFrame.g_ui_policy;
-    var policySysIds = getPolicySysIds(policyArray, fieldName);
-    if(policySysIds != ''){
-      var urlString = `https://${getHostName()}/sys_ui_policy_list.do?sysparm_query=sys_idIN${policySysIds}`;
-      window.open(urlString, '_blank');
-      console.group('UI Policies');
-      console.log('UI Policies: ', urlString);
-      console.groupEnd();
-    } else {
-      console.group('UI Policies');
-      console.log('Zero Results');
-      console.groupEnd();
-    }
+    //getPolicySysIds should return a promise
+    getPolicySysIds(policyArray, fieldName)
+      .then(policySysIds => {
+        if(policySysIds != ''){
+          var urlString = `https://${getHostName()}/sys_ui_policy_list.do?sysparm_query=sys_idIN${policySysIds}`;
+          window.open(urlString, '_blank');
+          console.group('UI Policies');
+          console.log('UI Policies: ', urlString);
+          console.groupEnd();
+        } else {
+          console.group('UI Policies');
+          console.log('Zero Results');
+          console.groupEnd();
+        }
+      });
   }
 
   function getPolicySysIds(policyArray, fieldName) {
-    var policySysIds = '';
+    var policySysIds = [];
     policyArray.forEach((policy) => {
       policy.actions.forEach((action) => {
         if (action.name == fieldName) {
-          policySysIds += policy.sys_id + ',';
+          policySysIds.push(policy.sys_id);
         }
       });
     });
-    return policySysIds;
+    return new Promise((resolve, reject) => {
+      searchPolicyScripts(policyArray, fieldName, policySysIds, function (results) {
+        debugger;
+        resolve(results);
+      });
+    });
+  }
+
+  function searchPolicyScripts(policyArray, fieldName, policySysIds, callback) {
+    var tFrame = getTargetFrame();
+    var promises = [];
+    policyArray.forEach(policy => {
+      if (policy.script_false != '' || policy.script_true != '') {
+        var pgr = new tFrame.GlideRecord('sys_ui_policy');
+        pgr.addQuery('sys_id', policy.sys_id);
+        promises.push(new Promise((resolve, reject) => {
+          pgr.query(function (rec) {
+            while (rec.next()) {
+              debugger;
+              if (rec.script_true.search(fieldName) != -1 || rec.script_false.search(fieldName) != -1) {
+                if (policySysIds.indexOf(policy.sys_id) == -1) {
+                  policySysIds.push(policy.sys_id);
+                }
+              }
+            }
+            resolve(policySysIds);
+          });
+        }));
+      }
+    });
+    Promise.all(promises)
+      .then((policySysIds) => {
+        callback(policySysIds);
+      });
   }
 
   function spfieldChart() {
