@@ -1,5 +1,3 @@
-//TODO: If the UI Policy's run_scripts field is true, we need to also check
-//the script_true and script_false fields.
 var fs = (() => {
   var fieldChart = () => {
     if (isServicePortalPage()) {
@@ -23,7 +21,7 @@ var fs = (() => {
   }
 
   var parseURL = () => {
-    console.info(getUrlParams(getTargetFrame().location.search));
+    console.table(getUrlParams(getTargetFrame().location.search));
   }
 
   var getSections = () => {
