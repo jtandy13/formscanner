@@ -1,23 +1,11 @@
-var fs = (() => {
-  var fieldChart = () => {
-    if (isServicePortalPage()) {
-      spfieldChart();
-    } else {
-      var fields = [];
-      var gf = getTargetFrame().g_form;
-      gf.elements.forEach(elem => {
-        if (elem.tableName != 'variable') {
-          var details = {};
-          details.fieldLabel = gf.getLabelOf(elem.fieldName);
-          details.fieldName = elem.fieldName;
-          details.value = gf.getValue(elem.fieldName);
-          details.type = elem.type;
-          details.reference = elem.reference;
-          fields.push(details);
-        }
-      });
-      console.table(fields);
-    }
+const fs = (() => {
+  const compose = (...fns) => x => fns.reduceRight((v,f) => f(v),x);
+  const fieldChart = () => {
+    compose(
+      tableIt,
+      getFieldChart,
+      getTargetFrame
+    ) (window);
   }
 
   var parseURL = () => {
@@ -39,7 +27,7 @@ var fs = (() => {
   }
 
   var searchScripts = (searchTerm) => {
-    if (isServicePortalPage()) {
+    if (isServicePortalPage(window)) {
       searchServicePortalScripts(searchTerm);
     } else {
       searchClientScripts(searchTerm);
@@ -128,7 +116,7 @@ var fs = (() => {
   }
 
   function getTableName() {
-    if (isServicePortalPage()) {
+    if (isServicePortalPage(window)) {
       return spGetTableName();
     } else {
       return getTargetFrame().g_form.tableName;
@@ -333,21 +321,46 @@ var fs = (() => {
     return params
 }
 
-  function getTargetFrame() {
-    var tFrame;
-    if (window.g_form) {
-      tFrame = window;
+  const getTargetFrame = (context) => {
+    let tFrame;
+    if (context.g_form) {
+      tFrame = context;
       return tFrame;
     } else if (document.getElementById('gsft_main')) {
       tFrame = document.getElementById('gsft_main').contentWindow
       return tFrame;
     } else {
-      return window;
+      return context;
     }
   }
 
-  function isServicePortalPage(callback) {
-    return window.NOW.hasOwnProperty("sp");
+  const getFieldChart = (frame) => {
+    if (isServicePortalPage(window)) {
+      spfieldChart();
+    } else {
+      let fields = [];
+      let gf = frame.g_form;
+      gf.elements.forEach(elem => {
+        if (elem.tableName != 'variable') {
+          var details = {};
+          details.fieldLabel = gf.getLabelOf(elem.fieldName);
+          details.fieldName = elem.fieldName;
+          details.value = gf.getValue(elem.fieldName);
+          details.type = elem.type;
+          details.reference = elem.reference;
+          fields.push(details);
+        }
+      });
+      return fields;
+    }
+  }
+
+  const tableIt = (a) => {
+    console.table(a);
+  }
+
+  const isServicePortalPage = (context) => {
+    return context.NOW.hasOwnProperty("sp");
   }
 
   return {
