@@ -192,10 +192,14 @@ var fs = (() => {
         }));
       }
     });
-    Promise.all(promises)
+    if(promises.length == 0) {
+      callback(policySysIds);
+    } else {
+      Promise.all(promises)
       .then((policySysIds) => {
         callback(policySysIds);
       });
+    }
   }
 
   function spfieldChart() {
