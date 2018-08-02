@@ -9,7 +9,12 @@ const fs = (() => {
   }
 
   var parseURL = () => {
-    console.table(getUrlParams(getTargetFrame().location.search));
+    compose(
+      tableIt,
+      getUrlParams,
+      getUrlQueryString,
+      getTargetFrame
+    ) (window);
   }
 
   var getSections = () => {
@@ -361,6 +366,10 @@ const fs = (() => {
 
   const isServicePortalPage = (context) => {
     return context.NOW.hasOwnProperty("sp");
+  }
+
+  const getUrlQueryString = (context) => {
+    return context.location.search;
   }
 
   return {
