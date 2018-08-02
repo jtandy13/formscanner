@@ -261,18 +261,20 @@ var fs = (() => {
   }
 
   function spSearchUiPolicies(policies, fieldName) {
-    var policySysIds = getPolicySysIds(policies, fieldName);
-    if(policySysIds != '') {
-      var urlString = `https://${getHostName()}/sys_ui_policy_list.do?sysparm_query=sys_idIN${policySysIds}`;
-      window.open(urlString, '_blank');
-      console.group('UI Policies');
-      console.log('UI Policies: ', urlString);
-      console.groupEnd();
-    } else {
-      console.group('UI Policies');
-      console.log('Zero results.');
-      console.groupEnd();
-    }
+    getPolicySysIds(policies, fieldName)
+      .then(policySysIds => {
+        if(policySysIds != '') {
+          var urlString = `https://${getHostName()}/sys_ui_policy_list.do?sysparm_query=sys_idIN${policySysIds}`;
+          window.open(urlString, '_blank');
+          console.group('UI Policies');
+          console.log('UI Policies: ', urlString);
+          console.groupEnd();
+        } else {
+          console.group('UI Policies');
+          console.log('Zero results.');
+          console.groupEnd();
+        }
+      });
   }
 
   function spSearchClientScripts(clientScripts, fieldName) {
