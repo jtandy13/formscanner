@@ -2,33 +2,28 @@ const fs = (() => {
   const compose = (...fns) => x => fns.reduceRight((v,f) => f(v),x);
   const fieldChart = () => {
     compose(
-      tableIt,
+      consoleTableIt,
       getFieldChart,
       getTargetFrame
     ) (window);
   }
 
-  var parseURL = () => {
+  const parseURL = () => {
     compose(
-      tableIt,
+      consoleTableIt,
       getUrlParams,
       getUrlQueryString,
       getTargetFrame
     ) (window);
   }
 
-  var getSections = () => {
-    if (isServicePortalPage()) {
-      spGetSections();
-    } else {
-      var tableName = getTargetFrame().g_form.getTableName();
-      var viewName = getParmValue('sysparm_view');
-      var urlString = `https://${getHostName()}/sys_ui_section_list.do?sysparm_query=name=${tableName}^view.name=${viewName}`;
-      window.open(urlString, '_blank');
-      console.group('Form Sections');
-      console.log('Form Sections: ', urlString);
-      console.groupEnd();
-    }
+  const getSections = () => {
+    compose(
+      consoleGroupIt,
+      openNewTab,
+      compileUrl,
+      compileSectionQuery
+    ) (isServicePortalPage(window));
   }
 
   var searchScripts = (searchTerm) => {
@@ -42,7 +37,7 @@ const fs = (() => {
   }
 
   function searchClientScripts(fieldName) {
-    var tFrame = getTargetFrame();
+    var tFrame = getTargetFrame(window);
     var clientScriptsObj = tFrame.g_event_handler_ids;
     var scriptSysIds = [];
     var promises = [];
@@ -84,7 +79,7 @@ const fs = (() => {
   }
 
   function searchBusinessRules(fieldName) {
-    var tFrame = getTargetFrame();
+    var tFrame = getTargetFrame(window);
     var businessRuleSysIds = [];
     var gr = new tFrame.GlideRecord("sys_script");
     var tableName = getTableName();
@@ -124,12 +119,12 @@ const fs = (() => {
     if (isServicePortalPage(window)) {
       return spGetTableName();
     } else {
-      return getTargetFrame().g_form.tableName;
+      return getTargetFrame(window).g_form.tableName;
     }
   }
 
   function searchUiPolicies(fieldName) {
-    var tFrame = getTargetFrame();
+    var tFrame = getTargetFrame(window);
     var policyArray = tFrame.g_ui_policy;
     //getPolicySysIds should return a promise
     getPolicySysIds(policyArray, fieldName)
@@ -165,7 +160,7 @@ const fs = (() => {
   }
 
   function searchPolicyScripts(policyArray, fieldName, policySysIds, callback) {
-    var tFrame = getTargetFrame();
+    var tFrame = getTargetFrame(window);
     var promises = [];
     policyArray.forEach(policy => {
       if (policy.script_false != '' || policy.script_true != '') {
@@ -195,18 +190,18 @@ const fs = (() => {
     }
   }
 
-  function spfieldChart() {
-    var gf = null;
+  const spfieldChart = () => {
+    let gf = null;
     try {
       gf = angular.element("sp-variable-layout").scope().getGlideForm();
     } catch (err) {
       console.error('Unable to find the g_form object: ' + err.message);
       return;
     }
-    var fieldDetails = []
-    var fields = gf.getFieldNames();
+    let fieldDetails = []
+    let fields = gf.getFieldNames();
     fields.forEach(fieldName => {
-      var details = {};
+      let details = {};
       details.fieldLabel = gf.getLabelOf(fieldName);
       details.fieldName = fieldName;
       details.value = gf.getValue(fieldName);
@@ -214,7 +209,7 @@ const fs = (() => {
       details.reference = gf.getField(fieldName).refTable;
       fieldDetails.push(details);
     });
-    console.table(fieldDetails);
+    return fieldDetails;
   }
 
   function spGetTableName() {
@@ -310,7 +305,7 @@ const fs = (() => {
   }
 
   function getParmValue(parmName) {
-    var searchParams = new URLSearchParams(getTargetFrame().location.search);
+    var searchParams = new URLSearchParams(getTargetFrame(window).location.search);
     var value = searchParams.get(parmName);
     // an empty string will signify the default view
     return value || '';
@@ -328,7 +323,7 @@ const fs = (() => {
 
   const getTargetFrame = (context) => {
     let tFrame;
-    if (context.g_form) {
+    if (context.hasOwnProperty('g_form')) {
       tFrame = context;
       return tFrame;
     } else if (document.getElementById('gsft_main')) {
@@ -341,13 +336,13 @@ const fs = (() => {
 
   const getFieldChart = (frame) => {
     if (isServicePortalPage(window)) {
-      spfieldChart();
+      return spfieldChart();
     } else {
       let fields = [];
       let gf = frame.g_form;
       gf.elements.forEach(elem => {
         if (elem.tableName != 'variable') {
-          var details = {};
+          let details = {};
           details.fieldLabel = gf.getLabelOf(elem.fieldName);
           details.fieldName = elem.fieldName;
           details.value = gf.getValue(elem.fieldName);
@@ -360,12 +355,56 @@ const fs = (() => {
     }
   }
 
-  const tableIt = (a) => {
+  const compileSectionQuery = (isSpPage) => {
+    let tableName;
+    let viewName;
+    if (isSpPage) {
+      tableName = getParmValue('table');
+      viewName = getParmValue('view');
+      if (viewName == 'default')
+        viewName = '';
+    } else {
+      tableName = getTargetFrame(window).g_form.getTableName();
+      viewName = getParmValue('sysparm_view');
+    }
+    return {
+      type: 'sections',
+      variables: {
+        tableName: tableName,
+        viewName: viewName
+      }
+    }
+  }
+
+  const compileUrl = ({type, variables}) => {
+    switch (type) {
+      case 'sections':
+        return {
+          name: 'Form Sections',
+          url: `https://${getHostName()}/sys_ui_section_list.do?sysparm_query=name=${variables.tableName}^view.name=${variables.viewName}`
+        }
+      default:
+        console.error(`Could not compile url for type ${type}`);
+    }
+  }
+
+  const consoleTableIt = (a) => {
     console.table(a);
   }
 
+  const consoleGroupIt = ({name, url}) => {
+    console.group(name);
+    console.log(name + ': ' + url);
+    console.groupEnd();
+  }
+
+  const openNewTab = ({name, url}) => {
+    window.open(url, '_blank');
+    return {name, url};
+  }
+
   const isServicePortalPage = (context) => {
-    return context.NOW.hasOwnProperty("sp");
+    return context.NOW.hasOwnProperty('sp');
   }
 
   const getUrlQueryString = (context) => {
