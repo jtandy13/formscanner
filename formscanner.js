@@ -28,13 +28,13 @@ const fs = (() => {
   }
 
   const searchScripts = (searchTerm) => {
-    if (isServicePortalPage(window)) {
-      searchServicePortalScripts(searchTerm);
-    } else {
+    //if (isServicePortalPage(window)) {
+      //searchServicePortalScripts(searchTerm);
+    //} else {
       searchClientScripts(searchTerm);
-      searchBusinessRules(searchTerm);
-      searchUiPolicies(searchTerm);
-    }
+      //searchBusinessRules(searchTerm);
+      //searchUiPolicies(searchTerm);
+    //}
   }
 
   const searchClientScripts = (fieldName) => {
@@ -43,50 +43,8 @@ const fs = (() => {
       openNewTab,
       compileUrl,
       compileClientScriptQuery
-    )(fieldName, isServicePortalPage(window));
+    )(fieldName);
   }
-
-  /* function searchClientScripts(fieldName) {
-    var tFrame = getTargetFrame(window);
-    var clientScriptsObj = tFrame.g_event_handler_ids;
-    var scriptSysIds = [];
-    var promises = [];
-    for (var prop in clientScriptsObj) {
-      var gr = new tFrame.GlideRecord("sys_script_client");
-      gr.addQuery("sys_id", clientScriptsObj[prop]);
-      promises.push(new Promise((resolve, reject) => {
-        gr.query(function (rec) {
-            while (rec.next()) {
-              if (rec.script.search(fieldName) != -1) {
-                scriptSysIds.push(rec.sys_id);
-              }
-            }
-            resolve();
-        });
-      }));
-    }
-    Promise.all(promises)
-      .then(() => {
-        var sysIdString = '';
-        if (scriptSysIds.length != 0) {
-          scriptSysIds.forEach((sys_id, index, arr) => {
-            if(index != (arr.length - 1))
-              sysIdString += sys_id + ',';
-            else
-            sysIdString += sys_id;
-          });
-          var urlString = `https://${getHostName()}/sys_script_client_list.do?sysparm_query=sys_idIN${sysIdString}`;
-          window.open(urlString, '_blank');
-          console.group('Client Scripts');
-          console.log('Client Scripts: ', urlString);
-          console.groupEnd();
-        } else {
-          console.group('Client Scripts');
-          console.log('Zero results. Check access if not admin');
-          console.groupEnd();
-        }
-      });
-  } */
 
   function searchBusinessRules(fieldName) {
     var tFrame = getTargetFrame(window);
@@ -275,45 +233,6 @@ const fs = (() => {
       });
   }
 
-  /* function spSearchClientScripts(clientScripts, fieldName) {
-    var clientScriptSysIds = '';
-    if(clientScripts.hasOwnProperty('onChange')) {
-      if(clientScripts.onChange.length > 0) {
-        clientScripts.onChange.forEach(clientScript => {
-          if(clientScript.script.search(fieldName) != -1)
-            clientScriptSysIds += clientScript.sys_id + ',';
-        }); 
-      }
-    } 
-    if(clientScripts.hasOwnProperty('onLoad')) {
-      if(clientScripts.onLoad.length > 0) {
-        clientScripts.onLoad.forEach(clientScript => {
-          if(clientScript.script.search(fieldName) != -1)
-            clientScriptSysIds += clientScript.sys_id + ',';
-        }); 
-      }
-    }
-    if(clientScripts.hasOwnProperty('onSubmit')) {
-      if(clientScripts.onSubmit.length > 0) {
-        clientScripts.onSubmit.forEach(clientScript => {
-          if(clientScript.script.search(fieldName) != -1)
-            clientScriptSysIds += clientScript.sys_id + ',';
-        }); 
-      }
-    }
-    if(clientScriptSysIds != '') {
-      var urlString = `https://${getHostName()}/sys_script_client_list.do?sysparm_query=sys_idIN${clientScriptSysIds}`;
-      window.open(urlString, '_blank');
-      console.group('Client Scripts');
-      console.log('Client Scripts: ', urlString);
-      console.groupEnd();
-    } else {
-      console.group('Client Scripts');
-      console.log('Zero results.');
-      console.groupEnd();
-    }
-  } */
-
   function getParmValue(parmName) {
     var searchParams = new URLSearchParams(getTargetFrame(window).location.search);
     var value = searchParams.get(parmName);
@@ -381,7 +300,8 @@ const fs = (() => {
 
   const spGetClientScriptSysIds = (fieldName) => {
     let clientScripts = spGetFormScope().client_script;
-    let clientScriptSysIds = clientScriptTypes().forEach(type => {
+    let clientScriptSysIds;
+    clientScriptTypes().forEach(type => {
       if(clientScripts.hasOwnProperty(type)) {
         if(clientScripts[type].length > 0) {
           clientScripts[type].forEach(clientScript => {
@@ -389,7 +309,7 @@ const fs = (() => {
               clientScriptSysIds += clientScript.sys_id + ',';
           }); 
         }
-      } 
+      }
     });
     return clientScriptSysIds;
   }
@@ -419,9 +339,9 @@ const fs = (() => {
     return Promise.all(promises);
   }
 
-  const compileClientScriptQuery = (fieldName, isSpPage) => {
+  const compileClientScriptQuery = (fieldName) => {
     let clientScriptSysIds;
-    if(isSpPage) {
+    if(isServicePortalPage(window)) {
       clientScriptSysIds = spGetClientScriptSysIds(fieldName);
       return {
         type: 'clientScripts',
@@ -434,11 +354,10 @@ const fs = (() => {
         getClientScriptsSysIds(fieldName).then(sysIdArray => {
           let sysIdString = removeEmptyElements(sysIdArray).reduce((value, curr, i, a) => {
             if (i != (a.length - 1))
-              return curr + ',';
+              return value += curr + ',';
             else
-              return curr
-          });
-          debugger;
+              return value += curr;
+          }, '');
           resolve({
             type: 'clientScripts',
             variables: {
@@ -518,7 +437,5 @@ const fs = (() => {
       parseURL: parseURL,
       getSections: getSections,
       searchScripts: searchScripts,
-      //DEBUG
-      getClientScriptsSysIds: getClientScriptsSysIds
     };
 })();
