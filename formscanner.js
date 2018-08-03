@@ -1,5 +1,6 @@
 const fs = (() => {
-  const compose = (...fns) => x => fns.reduceRight((v,f) => f(v),x);
+  //const compose = (...fns) => x => fns.reduceRight((v,f) => f(v),x);
+  const compose = (...fns) => input => fns.reduceRight((chain, func) => chain.then(func), Promise.resolve(input));
   const fieldChart = () => {
     compose(
       consoleTableIt,
@@ -26,7 +27,7 @@ const fs = (() => {
     ) (isServicePortalPage(window));
   }
 
-  var searchScripts = (searchTerm) => {
+  const searchScripts = (searchTerm) => {
     if (isServicePortalPage(window)) {
       searchServicePortalScripts(searchTerm);
     } else {
@@ -36,7 +37,16 @@ const fs = (() => {
     }
   }
 
-  function searchClientScripts(fieldName) {
+  const searchClientScripts = (fieldName) => {
+    compose(
+      consoleGroupIt,
+      openNewTab,
+      compileUrl,
+      compileClientScriptQuery
+    )(fieldName, isServicePortalPage(window));
+  }
+
+  /* function searchClientScripts(fieldName) {
     var tFrame = getTargetFrame(window);
     var clientScriptsObj = tFrame.g_event_handler_ids;
     var scriptSysIds = [];
@@ -76,7 +86,7 @@ const fs = (() => {
           console.groupEnd();
         }
       });
-  }
+  } */
 
   function searchBusinessRules(fieldName) {
     var tFrame = getTargetFrame(window);
@@ -265,7 +275,7 @@ const fs = (() => {
       });
   }
 
-  function spSearchClientScripts(clientScripts, fieldName) {
+  /* function spSearchClientScripts(clientScripts, fieldName) {
     var clientScriptSysIds = '';
     if(clientScripts.hasOwnProperty('onChange')) {
       if(clientScripts.onChange.length > 0) {
@@ -302,7 +312,7 @@ const fs = (() => {
       console.log('Zero results.');
       console.groupEnd();
     }
-  }
+  } */
 
   function getParmValue(parmName) {
     var searchParams = new URLSearchParams(getTargetFrame(window).location.search);
@@ -355,6 +365,93 @@ const fs = (() => {
     }
   }
 
+  const spGetFormScope = () => {
+    let widgetScopes = [];
+    let spWidgets = document.querySelectorAll("[widget='widget']");
+    let formScope = null;
+
+    spWidgets.forEach((widget, i) => {
+      let thisScope = angular.element(spWidgets[i]).scope();
+      if (thisScope.hasOwnProperty('data') && thisScope.data.hasOwnProperty('f'))
+        formScope = thisScope.data.f;
+    });
+
+    return formScope;
+  }
+
+  const spGetClientScriptSysIds = (fieldName) => {
+    let clientScripts = spGetFormScope().client_script;
+    let clientScriptSysIds = clientScriptTypes().forEach(type => {
+      if(clientScripts.hasOwnProperty(type)) {
+        if(clientScripts[type].length > 0) {
+          clientScripts[type].forEach(clientScript => {
+            if(clientScript.script.search(fieldName) != -1)
+              clientScriptSysIds += clientScript.sys_id + ',';
+          }); 
+        }
+      } 
+    });
+    return clientScriptSysIds;
+  }
+
+  const clientScriptTypes = () => ['onChange', 'onLoad', 'onSubmit'];
+
+  const getClientScriptsSysIds = (fieldName) => {
+    let tFrame = getTargetFrame(window);
+    let clientScriptsObj = tFrame.g_event_handler_ids;
+    let scriptSysIds = [];
+    let promises = [];
+    for (let prop in clientScriptsObj) {
+      let gr = new tFrame.GlideRecord("sys_script_client");
+      gr.addQuery("sys_id", clientScriptsObj[prop]);
+      promises.push(new Promise((resolve, reject) => {
+        gr.query(function (rec) {
+          while (rec.next()) {
+            if (rec.script.search(fieldName) != -1) {
+              resolve(rec.sys_id);
+            } else {
+              resolve();
+            }
+          }
+        });
+      }));
+    }
+    return Promise.all(promises);
+  }
+
+  const compileClientScriptQuery = (fieldName, isSpPage) => {
+    let clientScriptSysIds;
+    if(isSpPage) {
+      clientScriptSysIds = spGetClientScriptSysIds(fieldName);
+      return {
+        type: 'clientScripts',
+        variables: {
+          sysIdString: clientScriptSysIds
+        }
+      }
+    } else {
+      return new Promise((resolve, reject) => {
+        getClientScriptsSysIds(fieldName).then(sysIdArray => {
+          let sysIdString = removeEmptyElements(sysIdArray).reduce((value, curr, i, a) => {
+            if (i != (a.length - 1))
+              return curr + ',';
+            else
+              return curr
+          });
+          debugger;
+          resolve({
+            type: 'clientScripts',
+            variables: {
+              sysIdString: sysIdString
+            }
+          });
+        });
+      });
+    }
+  }
+
+  const removeEmptyElements = arr => arr.filter(Boolean); 
+
   const compileSectionQuery = (isSpPage) => {
     let tableName;
     let viewName;
@@ -380,8 +477,13 @@ const fs = (() => {
     switch (type) {
       case 'sections':
         return {
-          name: 'Form Sections',
+          name: 'Sections',
           url: `https://${getHostName()}/sys_ui_section_list.do?sysparm_query=name=${variables.tableName}^view.name=${variables.viewName}`
+        }
+      case 'clientScripts':
+        return {
+          name: 'Client Scripts',
+          url: `https://${getHostName()}/sys_script_client_list.do?sysparm_query=sys_idIN${variables.sysIdString}`
         }
       default:
         console.error(`Could not compile url for type ${type}`);
@@ -415,6 +517,8 @@ const fs = (() => {
       fieldChart: fieldChart, 
       parseURL: parseURL,
       getSections: getSections,
-      searchScripts: searchScripts
+      searchScripts: searchScripts,
+      //DEBUG
+      getClientScriptsSysIds: getClientScriptsSysIds
     };
 })();
