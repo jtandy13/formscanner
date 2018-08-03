@@ -1,5 +1,4 @@
 const fs = (() => {
-  //const compose = (...fns) => x => fns.reduceRight((v,f) => f(v),x);
   const compose = (...fns) => input => fns.reduceRight((chain, func) => chain.then(func), Promise.resolve(input));
   const fieldChart = () => {
     compose(
@@ -27,12 +26,21 @@ const fs = (() => {
     ) (isServicePortalPage(window));
   }
 
+  const searchBusinessRules = (fieldName) => {
+    compose(
+      consoleGroupIt,
+      openNewTab,
+      compileUrl,
+      compileBusinessRuleQuery
+    )(fieldName);
+  }
+
   const searchScripts = (searchTerm) => {
     //if (isServicePortalPage(window)) {
       //searchServicePortalScripts(searchTerm);
     //} else {
       searchClientScripts(searchTerm);
-      //searchBusinessRules(searchTerm);
+      searchBusinessRules(searchTerm);
       //searchUiPolicies(searchTerm);
     //}
   }
@@ -44,43 +52,6 @@ const fs = (() => {
       compileUrl,
       compileClientScriptQuery
     )(fieldName);
-  }
-
-  function searchBusinessRules(fieldName) {
-    var tFrame = getTargetFrame(window);
-    var businessRuleSysIds = [];
-    var gr = new tFrame.GlideRecord("sys_script");
-    var tableName = getTableName();
-    gr.addQuery("collection", tableName);
-    new Promise((resolve, reject) => {
-      gr.query(function (rec) {
-        while (rec.next()) {
-          if (rec.script.search(fieldName) != -1 || rec.template.search(fieldName) != -1) {
-            businessRuleSysIds.push(rec.sys_id);
-          }
-        }
-        resolve();
-      });
-    }).then(() => {
-      var sysIdString = '';
-      if (businessRuleSysIds.length != 0) {
-        businessRuleSysIds.forEach((sys_id, index, arr) => {
-          if(index != (arr.length - 1))
-            sysIdString += sys_id + ',';
-          else
-          sysIdString += sys_id;
-        });
-        var urlString = `https://${getHostName()}/sys_script_list.do?sysparm_query=sys_idIN${sysIdString}`;
-        window.open(urlString, '_blank');
-        console.group('Business Rules');
-        console.log('Business Rules: ', urlString);
-        console.groupEnd();
-      } else {
-        console.group('Business Rules');
-        console.log('Zero results. Check access if not admin');
-        console.groupEnd();
-      }
-    });
   }
 
   function getTableName() {
@@ -185,17 +156,7 @@ const fs = (() => {
     return gForm.getTableName();
   }
 
-  function spGetSections() {
-    var tableName = getParmValue('table');
-    var viewName = getParmValue('view');
-    if (viewName == 'default')
-      viewName = '';
-    var urlString = `https://${getHostName()}/sys_ui_section_list.do?sysparm_query=name=${tableName}^view.name=${viewName}`;
-    window.open(urlString, '_blank');
-    console.table({"Form Sections": urlString});
-  }
-
-  function searchServicePortalScripts(fieldName) {
+  /* function searchServicePortalScripts(fieldName) {
     var widgetScopes = [];
     var spWidgets = document.querySelectorAll("[widget='widget']");
     var formWidgetScope = null;
@@ -210,9 +171,9 @@ const fs = (() => {
     spSearchUiPolicies(policies, fieldName);
     spSearchClientScripts(clientScripts, fieldName);
     searchBusinessRules(fieldName);
-  }
+  } */
 
-  function getHostName() {
+  const getHostName = () => {
     return location.hostname;
   }
 
@@ -233,14 +194,14 @@ const fs = (() => {
       });
   }
 
-  function getParmValue(parmName) {
+  const getParmValue = (parmName) => {
     var searchParams = new URLSearchParams(getTargetFrame(window).location.search);
     var value = searchParams.get(parmName);
     // an empty string will signify the default view
     return value || '';
   }
 
-  function getUrlParams(search) {
+  const getUrlParams = (search) => {
     let hashes = search.slice(search.indexOf('?') + 1).split('&');
     let params = {}
     hashes.map(hash => {
@@ -369,7 +330,43 @@ const fs = (() => {
     }
   }
 
-  const removeEmptyElements = arr => arr.filter(Boolean); 
+  const getBusinessRuleSysIds = (fieldName) => {
+    let tFrame = getTargetFrame(window);
+    let businessRuleSysIds = [];
+    let gr = new tFrame.GlideRecord("sys_script");
+    let tableName = getTableName();
+    gr.addQuery("collection", tableName);
+    return new Promise((resolve, reject) => {
+      gr.query(function (rec) {
+        while (rec.next()) {
+          if (rec.script.search(fieldName) != -1 || rec.template.search(fieldName) != -1) {
+            businessRuleSysIds.push(rec.sys_id);
+          }
+        }
+        resolve(businessRuleSysIds);
+      });
+    });
+  }
+
+  const compileBusinessRuleQuery = (fieldName) => {
+    let businessRuleSysIds;
+    return new Promise((resolve, reject) => {
+      getBusinessRuleSysIds(fieldName).then(sysIdArray => {
+        let sysIdString = removeEmptyElements(sysIdArray).reduce((value, curr, i, a) => {
+          if (i != (a.length - 1))
+            return value += curr + ',';
+          else
+            return value += curr;
+        }, '');
+        resolve({
+          type: 'businessRules',
+          variables: {
+            sysIdString: sysIdString
+          }
+        });
+      });
+    });
+  }
 
   const compileSectionQuery = (isSpPage) => {
     let tableName;
@@ -404,6 +401,11 @@ const fs = (() => {
           name: 'Client Scripts',
           url: `https://${getHostName()}/sys_script_client_list.do?sysparm_query=sys_idIN${variables.sysIdString}`
         }
+      case 'businessRules':
+        return {
+          name: 'Business Rules',
+          url: `https://${getHostName()}/sys_script_list.do?sysparm_query=sys_idIN${variables.sysIdString}`
+        }
       default:
         console.error(`Could not compile url for type ${type}`);
     }
@@ -418,6 +420,8 @@ const fs = (() => {
     console.log(name + ': ' + url);
     console.groupEnd();
   }
+
+  const removeEmptyElements = arr => arr.filter(Boolean); 
 
   const openNewTab = ({name, url}) => {
     window.open(url, '_blank');
