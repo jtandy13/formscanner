@@ -56,16 +56,12 @@ const fs = (() => {
   }
 
   const searchScripts = (searchTerm) => {
-    //if (isServicePortalPage(window)) {
-      //searchServicePortalScripts(searchTerm);
-    //} else {
-      searchClientScripts(searchTerm);
-      searchBusinessRules(searchTerm);
-      searchUiPolicies(searchTerm);
-    //}
+    searchClientScripts(searchTerm);
+    searchBusinessRules(searchTerm);
+    searchUiPolicies(searchTerm);
   }
 
-  function getTableName() {
+  const getTableName = () => {
     if (isServicePortalPage(window)) {
       return spGetTableName();
     } else {
@@ -126,30 +122,13 @@ const fs = (() => {
     return fieldDetails;
   }
 
-  function spGetTableName() {
+  const spGetTableName = () => {
     var gForm = angular.element("sp-variable-layout").scope().getGlideForm();
     return gForm.getTableName();
   }
 
   const getHostName = () => {
     return location.hostname;
-  }
-
-  function spSearchUiPolicies(policies, fieldName) {
-    getPolicySysIds(policies, fieldName)
-      .then(policySysIds => {
-        if(policySysIds != '') {
-          var urlString = `https://${getHostName()}/sys_ui_policy_list.do?sysparm_query=sys_idIN${policySysIds}`;
-          window.open(urlString, '_blank');
-          console.group('UI Policies');
-          console.log('UI Policies: ', urlString);
-          console.groupEnd();
-        } else {
-          console.group('UI Policies');
-          console.log('Zero results.');
-          console.groupEnd();
-        }
-      });
   }
 
   const getPolicyArray = () => {
@@ -255,7 +234,7 @@ const fs = (() => {
       if (thisScope.hasOwnProperty('data') && thisScope.data.hasOwnProperty('f'))
         formScope = thisScope.data.f;
     });
-
+    
     return formScope;
   }
 
