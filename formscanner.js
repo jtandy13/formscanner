@@ -35,14 +35,15 @@ const fs = (() => {
     )(fieldName);
   }
 
-  const searchScripts = (searchTerm) => {
-    //if (isServicePortalPage(window)) {
-      //searchServicePortalScripts(searchTerm);
-    //} else {
-      searchClientScripts(searchTerm);
-      searchBusinessRules(searchTerm);
-      //searchUiPolicies(searchTerm);
-    //}
+  const searchUiPolicies = (fieldName) => {
+    compose(
+      consoleGroupIt,
+      openNewTab,
+      compileUrl,
+      compileUiPolicyQuery,
+      addUiPolicyScriptSearchResults,
+      searchPolicyActions
+    )(fieldName);
   }
 
   const searchClientScripts = (fieldName) => {
@@ -54,6 +55,16 @@ const fs = (() => {
     )(fieldName);
   }
 
+  const searchScripts = (searchTerm) => {
+    //if (isServicePortalPage(window)) {
+      //searchServicePortalScripts(searchTerm);
+    //} else {
+      searchClientScripts(searchTerm);
+      searchBusinessRules(searchTerm);
+      searchUiPolicies(searchTerm);
+    //}
+  }
+
   function getTableName() {
     if (isServicePortalPage(window)) {
       return spGetTableName();
@@ -62,51 +73,15 @@ const fs = (() => {
     }
   }
 
-  function searchUiPolicies(fieldName) {
-    var tFrame = getTargetFrame(window);
-    var policyArray = tFrame.g_ui_policy;
-    //getPolicySysIds should return a promise
-    getPolicySysIds(policyArray, fieldName)
-      .then(policySysIds => {
-        if(policySysIds != ''){
-          var urlString = `https://${getHostName()}/sys_ui_policy_list.do?sysparm_query=sys_idIN${policySysIds}`;
-          window.open(urlString, '_blank');
-          console.group('UI Policies');
-          console.log('UI Policies: ', urlString);
-          console.groupEnd();
-        } else {
-          console.group('UI Policies');
-          console.log('Zero Results');
-          console.groupEnd();
-        }
-      });
-  }
-
-  function getPolicySysIds(policyArray, fieldName) {
-    var policySysIds = [];
-    policyArray.forEach((policy) => {
-      policy.actions.forEach((action) => {
-        if (action.name == fieldName) {
-          policySysIds.push(policy.sys_id);
-        }
-      });
-    });
-    return new Promise((resolve, reject) => {
-      searchPolicyScripts(policyArray, fieldName, policySysIds, function (results) {
-        resolve(results);
-      });
-    });
-  }
-
-  function searchPolicyScripts(policyArray, fieldName, policySysIds, callback) {
-    var tFrame = getTargetFrame(window);
-    var promises = [];
+  const searchPolicyScripts = (policyArray, fieldName, policySysIds, callback) => {
+    let tFrame = getTargetFrame(window);
+    let promises = [];
     policyArray.forEach(policy => {
       if (policy.script_false != '' || policy.script_true != '') {
-        var pgr = new tFrame.GlideRecord('sys_ui_policy');
+        let pgr = new tFrame.GlideRecord('sys_ui_policy');
         pgr.addQuery('sys_id', policy.sys_id);
         promises.push(new Promise((resolve, reject) => {
-          pgr.query(function (rec) {
+          pgr.query(rec => {
             while (rec.next()) {
               if (rec.script_true.search(fieldName) != -1 || rec.script_false.search(fieldName) != -1) {
                 if (policySysIds.indexOf(policy.sys_id) == -1) {
@@ -156,23 +131,6 @@ const fs = (() => {
     return gForm.getTableName();
   }
 
-  /* function searchServicePortalScripts(fieldName) {
-    var widgetScopes = [];
-    var spWidgets = document.querySelectorAll("[widget='widget']");
-    var formWidgetScope = null;
-
-    spWidgets.forEach((widget, i) => {
-      var thisScope = angular.element(spWidgets[i]).scope();
-      if (thisScope.hasOwnProperty('data') && thisScope.data.hasOwnProperty('f'))
-        formScope = thisScope.data.f;
-    });
-    var clientScripts = formScope.client_script; 
-    var policies = formScope.policy;
-    spSearchUiPolicies(policies, fieldName);
-    spSearchClientScripts(clientScripts, fieldName);
-    searchBusinessRules(fieldName);
-  } */
-
   const getHostName = () => {
     return location.hostname;
   }
@@ -192,6 +150,48 @@ const fs = (() => {
           console.groupEnd();
         }
       });
+  }
+
+  const getPolicyArray = () => {
+    if(isServicePortalPage(window)) {
+      return spGetFormScope().policy;
+    } else {
+      let tFrame = getTargetFrame(window);
+      return tFrame.g_ui_policy;
+    }
+  }
+
+  const addUiPolicyScriptSearchResults = ({policyArray, resultSysIds, fieldName}) => {
+    return new Promise((resolve, reject) => {
+      searchPolicyScripts(policyArray, fieldName, resultSysIds, results => resolve(results));
+    });
+  }
+
+  const compileUiPolicyQuery = (resultSysIds) => {
+    let resultString = convertSysIdArrayToString(resultSysIds);
+    return {
+      type: 'uiPolicies',
+      variables: {
+        sysIdString: resultString
+      }
+    }
+  }
+  
+  const searchPolicyActions = (fieldName) => {
+    let policyArray = getPolicyArray();
+    let resultSysIds = [];
+    policyArray.forEach((policy) => {
+      policy.actions.forEach((action) => {
+        if (action.name == fieldName) {
+          resultSysIds.push(policy.sys_id);
+        }
+      });
+    });
+    return {
+      policyArray: policyArray,
+      resultSysIds: resultSysIds,
+      fieldName: fieldName
+    }
   }
 
   const getParmValue = (parmName) => {
@@ -352,12 +352,7 @@ const fs = (() => {
     let businessRuleSysIds;
     return new Promise((resolve, reject) => {
       getBusinessRuleSysIds(fieldName).then(sysIdArray => {
-        let sysIdString = removeEmptyElements(sysIdArray).reduce((value, curr, i, a) => {
-          if (i != (a.length - 1))
-            return value += curr + ',';
-          else
-            return value += curr;
-        }, '');
+        let sysIdString = convertSysIdArrayToString(sysIdArray);
         resolve({
           type: 'businessRules',
           variables: {
@@ -366,6 +361,15 @@ const fs = (() => {
         });
       });
     });
+  }
+
+  const convertSysIdArrayToString = (sysIdArray) => {
+    return removeEmptyElements(sysIdArray).reduce((value, curr, i, a) => {
+      if (i != (a.length - 1))
+        return value += curr + ',';
+      else
+        return value += curr;
+    }, '');
   }
 
   const compileSectionQuery = (isSpPage) => {
@@ -405,6 +409,11 @@ const fs = (() => {
         return {
           name: 'Business Rules',
           url: `https://${getHostName()}/sys_script_list.do?sysparm_query=sys_idIN${variables.sysIdString}`
+        }
+      case 'uiPolicies':
+        return {
+          name: 'UI Policies',
+          url: `https://${getHostName()}/sys_ui_policy_list.do?sysparm_query=sys_idIN${variables.sysIdString}`
         }
       default:
         console.error(`Could not compile url for type ${type}`);
