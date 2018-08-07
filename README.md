@@ -5,6 +5,7 @@ formscanner.js works equally well with Service Portal's "form" widget as it does
 
 ## Adding and running formscanner.js as a snippet in Chrome and FireFox
 [Run Snippets Of Code From Any Page - Chrome](https://developers.google.com/web/tools/chrome-devtools/snippets)
+
 [Scratchpad - Firefox](https://developer.mozilla.org/en-US/docs/Tools/Scratchpad)
 
 ## functions
