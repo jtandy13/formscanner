@@ -4,8 +4,8 @@ formscanner.js is a JavaScript console tool for quick disection of ServiceNow fo
 formscanner.js works equally well with Service Portal's "form" widget as it does with standard forms in ServiceNow's platform view.
 
 ## Adding and running formscanner.js as a snippet in Chrome and FireFox
-![Run Snippets Of Code From Any Page - Chrome](https://developers.google.com/web/tools/chrome-devtools/snippets)
-![Scratchpad - Firefox](https://developer.mozilla.org/en-US/docs/Tools/Scratchpad)
+[Run Snippets Of Code From Any Page - Chrome](https://developers.google.com/web/tools/chrome-devtools/snippets)
+[Scratchpad - Firefox](https://developer.mozilla.org/en-US/docs/Tools/Scratchpad)
 
 ## functions
 There a four base functions exposed through the "fs" object in the browser console. 
