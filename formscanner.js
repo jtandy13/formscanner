@@ -399,6 +399,32 @@ const fs = (() => {
     }
   }
 
+  // Callback to execute on DOM changes
+  const breakOnMutation = (mutationList) => {
+    for (let mutation of mutationList) {
+      debugger;
+    }
+  }
+
+  const observer = new MutationObserver(breakOnMutation);
+
+  const breakOnChange = (selector, formField) => {
+    //Since we need to detect any and all DOM changes . . . bring in the MutationObserver!
+    let targetWindow = getTargetFrame(window);
+    let targetNode = null;
+    if(formField){
+      targetNode = targetWindow.document.getElementById(`element.${targetWindow.g_form.tableName}.${selector}`);
+    } else {
+      targetNode = targetWindow.document.querySelector(selector);
+    }
+    let config = { attributes: true, childList: true, characterData: true, subtree: true };
+    observer.observe(targetNode, config);
+  }
+
+  const disableBreakPoint = () => {
+    if (observer) observer.disconnect();
+  }
+
   const consoleTableIt = (a) => {
     console.table(a);
   }
@@ -429,5 +455,7 @@ const fs = (() => {
       parseURL: parseURL,
       getSections: getSections,
       searchScripts: searchScripts,
+      breakOnChange: breakOnChange,
+      disableBreakPoint: disableBreakPoint,
     };
 })();
