@@ -39,6 +39,23 @@ searchScripts searches the following locations for any mention of the selected f
 fs.searchScripts('caller_id');
 ```
 
+### breakOnChange
+breakOnChange allows you to select a field to monitor for changes to CSS, HTML element attributes, HTML child elements, and field values. Monitoring a field means that you set a break point on any of these changes. 
+
+Example on the incident form:
+
+```javascript
+fs.breakOnChange('state', true);
+```
+
+If you're looking to break on changes of other DOM elements, then set the second parameter of the breakOnChange function to false, and use a CSS selector for the first parameter.
+
+Example:
+
+```javascript
+fs.breakOnChange('#add_icon', false);
+```
+
 ### parseURL
 parseURL is a utility function which may prove useful not just while troubleshooting form issues, but throughout the entire ServiceNow platform. ServiceNow URLs can become quite long. The parseURL function will quickly decode an encoded URL and display all of the URL parameter names and values. This function also leverages the console.table() function to display the results.
 
