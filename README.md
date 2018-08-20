@@ -56,6 +56,13 @@ Example:
 fs.breakOnChange('#add_icon', false);
 ```
 
+### disableBreakPoint
+Removes any break points that have been applied by the breakOnChange function.
+
+```javascript
+fs.disableBreakPoint();
+```
+
 ### parseURL
 parseURL is a utility function which may prove useful not just while troubleshooting form issues, but throughout the entire ServiceNow platform. ServiceNow URLs can become quite long. The parseURL function will quickly decode an encoded URL and display all of the URL parameter names and values. This function also leverages the console.table() function to display the results.
 
