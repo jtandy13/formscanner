@@ -354,6 +354,7 @@ const fs = (() => {
   const compileSectionQuery = (isSpPage) => {
     let tableName;
     let viewName;
+    let domain;
     if (isSpPage) {
       tableName = getParmValue('table');
       viewName = getParmValue('view');
@@ -362,12 +363,24 @@ const fs = (() => {
     } else {
       tableName = getTargetFrame(window).g_form.getTableName();
       viewName = getParmValue('sysparm_view');
+      domain = getTargetFrame(window).gel('sysparm_domain');
     }
-    return {
-      type: 'sections',
-      variables: {
-        tableName: tableName,
-        viewName: viewName
+    if(domain && domain.value !== 'global') {
+      return{
+        type: 'sectionsWithDomainSeparation',
+        variables: {
+          tableName: tableName,
+          viewName: viewName,
+          domain: domain.value
+        }
+      }
+    } else {
+      return {
+        type: 'sections',
+        variables: {
+          tableName: tableName,
+          viewName: viewName
+        }
       }
     }
   }
@@ -378,6 +391,11 @@ const fs = (() => {
         return {
           name: 'Sections',
           url: `https://${getHostName()}/sys_ui_section_list.do?sysparm_query=name=${variables.tableName}^view.name=${variables.viewName}`
+        }
+      case 'sectionsWithDomainSeparation':
+        return {
+          name: 'Sections',
+          url: `https://${getHostName()}/sys_ui_section_list.do?sysparm_query=name=${variables.tableName}^view.name=${variables.viewName}^NQname=${variables.tableName}^view.name=${variables.viewName}^sys_domain=${variables.domain}&sysparm_query_no_domain=true`
         }
       case 'clientScripts':
         return {
